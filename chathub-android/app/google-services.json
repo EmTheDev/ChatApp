@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "265035734085",
+    "firebase_url": "https://chatapp-ccef4.firebaseio.com",
+    "project_id": "chatapp-ccef4",
+    "storage_bucket": "chatapp-ccef4.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265035734085:android:123c68aba501e686",
+        "android_client_info": {
+          "package_name": "edu.sfsu.csc780.chathub"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "265035734085-tsgu03ck7doi1lkab68gbjlk5g7orp6o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "edu.sfsu.csc780.chathub",
+            "certificate_hash": "1EA0BACADC0C439CBF097939E1A78D5CF6C6B9D9"
+          }
+        },
+        {
+          "client_id": "265035734085-9o0bbvakaa1neo398rie1j8u1up8klg4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAB-T2ZZLhWHwHCthJ-QIv1ZfaXqHJmQg4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "265035734085-9o0bbvakaa1neo398rie1j8u1up8klg4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
