@@ -7,4 +7,10 @@
     <string name="preferences_menu_label">Preferences</string>
     <string name="auto_palette_preference">autoPalette</string>
     <string name="color_scheme_preference">colorScheme</string>
+
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
 </resources>
