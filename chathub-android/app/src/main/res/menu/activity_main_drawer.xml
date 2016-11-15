@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+
     <group android:checkableBehavior="single">
         <item
-            android:id="@+id/nav_camera"
+            android:id="@+id/nav_general"
             android:icon="@drawable/ic_menu_camera"
             android:title="General" />
+
         <item
-            android:id="@+id/nav_gallery"
+            android:id="@+id/nav_add"
             android:icon="@drawable/ic_add_box_black_24dp"
             android:title="New Channel"
             android:layout_marginLeft="20dp"/>
-
 
     </group>
 
     <item android:title="Communicate">
         <menu>
+            <group android:checkableBehavior="single">
             <item
                 android:id="@+id/nav_share"
                 android:icon="@drawable/ic_menu_share"
@@ -24,6 +28,8 @@
                 android:id="@+id/nav_send"
                 android:icon="@drawable/ic_menu_send"
                 android:title="Send" />
+            </group>
         </menu>
     </item>
+
 </menu>
