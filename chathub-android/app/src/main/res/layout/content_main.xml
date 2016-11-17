@@ -41,6 +41,15 @@
                 android:layout_weight="1"/>
 
             <ImageButton
+                android:id="@+id/audioButton"
+                android:src="@drawable/ic_keyboard_voice_black_24dp"
+                android:background="@drawable/button_ripple"
+                android:layout_gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+            <ImageButton
                 android:id="@+id/cameraButton"
                 android:src="@drawable/ic_camera_alt_black_24px"
                 android:background="@drawable/button_ripple"

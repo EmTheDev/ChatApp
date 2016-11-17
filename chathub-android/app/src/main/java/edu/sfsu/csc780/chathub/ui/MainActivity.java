@@ -16,11 +16,13 @@
 package edu.sfsu.csc780.chathub.ui;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -42,6 +44,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.EditText;
@@ -59,6 +62,7 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -120,11 +124,20 @@ public class MainActivity extends AppCompatActivity
 
     private FirebaseRecyclerAdapter<ChatMessage, MessageUtil.MessageViewHolder>
             mFirebaseAdapter;
+    private ImageButton mAudioButton;
     private ImageButton mImageButton;
     private int mSavedTheme;
     private ImageButton mLocationButton;
     private ImageButton mCameraButton;
 
+    private MediaRecorder mRecorder;
+    private String mFileName = null;
+    private StorageReference mStorage;
+    private ProgressDialog mProgress;
+
+
+
+    private static final String LOG_TAG = "Record_Log";
     private View.OnClickListener mImageClickListener = new View.OnClickListener() {
 
         @Override
@@ -262,6 +275,45 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        mProgress = new ProgressDialog(this);
+        mStorage = FirebaseStorage.getInstance().getReference();
+        mAudioButton = (ImageButton) findViewById(R.id.audioButton);
+        mAudioButton.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent motionEvent) {
+
+                if(motionEvent.getAction() == MotionEvent.ACTION_DOWN){
+
+                    startRecording();
+
+                    Context context = getApplicationContext();
+                    CharSequence text = "Recording Started!";
+                    int duration = Toast.LENGTH_SHORT;
+
+                    Toast toast = Toast.makeText(context, text, duration);
+                    toast.show();
+
+                }else if(motionEvent.getAction() == MotionEvent.ACTION_UP){
+
+                    stopRecording();
+
+                    Context context = getApplicationContext();
+                    CharSequence text = "Recording Stopped!";
+                    int duration = Toast.LENGTH_SHORT;
+
+                    Toast toast = Toast.makeText(context, text, duration);
+                    toast.show();
+
+                }
+
+                return false;
+            }
+        });
+
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/recorded_audio.3gp";
+
+
         mImageButton = (ImageButton) findViewById(R.id.shareImageButton);
         mImageButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -279,6 +331,56 @@ public class MainActivity extends AppCompatActivity
         });
 
 
+    }
+
+    private void startRecording() {
+        mRecorder = new MediaRecorder();
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mRecorder.setOutputFile(mFileName);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        try {
+            mRecorder.prepare();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+
+        mRecorder.start();
+    }
+
+    private void stopRecording() {
+        mRecorder.stop();
+        mRecorder.release();
+        mRecorder = null;
+
+        uploadAudio();
+    }
+
+    private void uploadAudio(){
+
+        mProgress.setMessage("Uploading Audio...");
+        mProgress.show();
+
+        StorageReference filepath = mStorage.child("Audio").child("new_audio.3gp");
+
+        Uri uri = Uri.fromFile(new File(mFileName));
+
+        filepath.putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                mProgress.dismiss();
+
+                Context context = getApplicationContext();
+                CharSequence text = "Uploading Finished!";
+                int duration = Toast.LENGTH_SHORT;
+
+                Toast toast = Toast.makeText(context, text, duration);
+                toast.show();
+
+            }
+        });
     }
 
     @Override
