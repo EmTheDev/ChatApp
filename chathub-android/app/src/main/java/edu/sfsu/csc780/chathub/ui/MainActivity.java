@@ -22,6 +22,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
@@ -70,8 +72,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 
 import edu.sfsu.csc780.chathub.R;
 import edu.sfsu.csc780.chathub.model.ChatMessage;
@@ -134,6 +138,8 @@ public class MainActivity extends AppCompatActivity
     private String mFileName = null;
     private StorageReference mStorage;
     private ProgressDialog mProgress;
+
+    private MediaPlayer mSound;
 
 
 
@@ -354,7 +360,11 @@ public class MainActivity extends AppCompatActivity
         mRecorder.release();
         mRecorder = null;
 
-        uploadAudio();
+
+        //uploadAudio();
+
+        Uri uri = saveAudio(mFileName);
+        createAudioMessage(uri);
     }
 
     private void uploadAudio(){
@@ -362,7 +372,7 @@ public class MainActivity extends AppCompatActivity
         mProgress.setMessage("Uploading Audio...");
         mProgress.show();
 
-        StorageReference filepath = mStorage.child("Audio").child("new_audio.3gp");
+        final StorageReference filepath = mStorage.child("Audio").child("new_audio.3gp");
 
         Uri uri = Uri.fromFile(new File(mFileName));
 
@@ -372,16 +382,120 @@ public class MainActivity extends AppCompatActivity
 
                 mProgress.dismiss();
 
+                Uri downloadUri = taskSnapshot.getDownloadUrl();
+
+                mSound = new MediaPlayer();
+
+                mSound.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+                try {
+                    mSound.setDataSource(getApplicationContext(), downloadUri);
+                } catch (IllegalArgumentException e) {
+                    Toast.makeText(getApplicationContext(), "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                } catch (SecurityException e) {
+                    Toast.makeText(getApplicationContext(), "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                } catch (IllegalStateException e) {
+                    Toast.makeText(getApplicationContext(), "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    mSound.prepare();
+                } catch (IllegalStateException e) {
+                    Toast.makeText(getApplicationContext(), "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                } catch (IOException e) {
+                    Toast.makeText(getApplicationContext(), "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                }
+
+                mSound.start();
+
                 Context context = getApplicationContext();
-                CharSequence text = "Uploading Finished!";
+                CharSequence text = downloadUri.toString();
                 int duration = Toast.LENGTH_SHORT;
 
                 Toast toast = Toast.makeText(context, text, duration);
                 toast.show();
 
+                createAudioMessage(downloadUri);
             }
         });
     }
+
+    private Uri saveAudio(String mFileName) {
+        File returnAudioFile = null;
+
+        try {
+            returnAudioFile = createAudioFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if (returnAudioFile == null) {
+            Log.d(TAG, "Error creating media file");
+            return null;
+        }
+
+        try {
+            RandomAccessFile f = new RandomAccessFile(mFileName, "r");
+            byte[] b = new byte[(int)f.length()];
+            f.readFully(b);
+            FileOutputStream fos = new FileOutputStream(returnAudioFile);
+            fos.write(b);
+            fos.close();
+        } catch (FileNotFoundException e) {
+            Log.d(TAG, "File not found: " + e.getMessage());
+        } catch (IOException e) {
+            Log.d(TAG, "Error accessing file: " + e.getMessage());
+        }
+        return Uri.fromFile(returnAudioFile);
+    }
+
+    private File createAudioFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
+        String audioFileNamePrefix = "audio-" + timeStamp;
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
+        File audioFile = File.createTempFile(
+                audioFileNamePrefix,    /* prefix */
+                ".3gp",                 /* suffix */
+                storageDir              /* directory */
+        );
+        return audioFile;
+    }
+
+    private void createAudioMessage(Uri uri) {
+        if (uri == null) {
+            Log.e(TAG, "Could not create audio message with null uri");
+            return;
+        }
+
+        final StorageReference audioReference = MessageUtil.getAudioStorageReference(mUser, uri);
+        UploadTask uploadTask = audioReference.putFile(uri);
+
+        // Register observers to listen for when task is done or if it fails
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                Log.e(TAG, "Failed to upload audio message");
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                ChatMessage chatMessage = new
+                        ChatMessage(mMessageEditText.getText().toString(),
+                        mUsername,
+                        mPhotoUrl, audioReference.toString(), 1);
+                MessageUtil.send(chatMessage);
+                mMessageEditText.setText("");
+
+            }
+        });
+    }
+
+
+
 
     @Override
     public void onBackPressed() {

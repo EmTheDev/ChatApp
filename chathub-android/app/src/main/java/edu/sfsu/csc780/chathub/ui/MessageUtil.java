@@ -1,8 +1,12 @@
 package edu.sfsu.csc780.chathub.ui;
 
+
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -11,8 +15,10 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
@@ -27,6 +33,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.IOException;
 import java.util.Calendar;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -39,6 +46,7 @@ public class MessageUtil {
     private static DatabaseReference sFirebaseDatabaseReference =
             FirebaseDatabase.getInstance().getReference();
     private static FirebaseStorage sStorage = FirebaseStorage.getInstance();
+    private static FirebaseStorage aStorage = FirebaseStorage.getInstance();
     private static MessageLoadListener sAdapterListener;
     private static FirebaseAuth sFirebaseAuth;
     public interface MessageLoadListener { public void onLoadComplete(); }
@@ -55,6 +63,8 @@ public class MessageUtil {
         public CircleImageView messengerImageView;
         public TextView timestampTextView;
         public View messageLayout;
+
+        public Button messageButtonView;
         public MessageViewHolder(View v) {
             super(v);
             v.setOnClickListener(sMessageClickListener);
@@ -64,6 +74,8 @@ public class MessageUtil {
             messageImageView = (ImageView) itemView.findViewById(R.id.messageImageView);
             timestampTextView = (TextView) itemView.findViewById(R.id.timestampTextView);
             messageLayout = (View) itemView.findViewById(R.id.messageLayout);
+
+            messageButtonView = (Button) itemView.findViewById(R.id.messageButtonView);
         }
     }
 
@@ -118,10 +130,61 @@ public class MessageUtil {
                             .into(target);
                 }
 
+                if(chatMessage.getUri() !=null){
+                    viewHolder.messageImageView.setVisibility(View.GONE);
+                    viewHolder.messageTextView.setVisibility(View.GONE);
+                    viewHolder.messageButtonView.setVisibility(View.VISIBLE);
+
+                    try{
+                        final StorageReference audioReference = aStorage.getReferenceFromUrl(chatMessage.getUri());
+                        audioReference.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+
+                            @Override
+                            public void onSuccess(final Uri uri) {
+                                viewHolder.messageButtonView.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        MediaPlayer mSound;
+                                        mSound = new MediaPlayer();
+                                        mSound.setAudioStreamType(AudioManager.STREAM_MUSIC);
+
+                                        try {
+                                            mSound.setDataSource(activity, uri);
+                                        } catch (IllegalArgumentException e) {
+                                            Toast.makeText(activity, "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                                        } catch (SecurityException e) {
+                                            Toast.makeText(activity, "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                                        } catch (IllegalStateException e) {
+                                            Toast.makeText(activity, "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+
+                                        try {
+                                            mSound.prepare();
+                                        } catch (IllegalStateException e) {
+                                            Toast.makeText(activity, "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                                        } catch (IOException e) {
+                                            Toast.makeText(activity, "You might not set the URI correctly!", Toast.LENGTH_LONG).show();
+                                        }
+
+                                        mSound.start();
+                                    }
+                                });
+                            }
+                        });
+                    } catch (IllegalArgumentException e) {
+                        viewHolder.messageTextView.setText("Error loading image");
+                        Log.e(LOG_TAG, e.getMessage() + " : " + chatMessage.getImageUrl());
+                    }
+
+                }
+
                 if (chatMessage.getImageUrl() != null) {
 
                     viewHolder.messageImageView.setVisibility(View.VISIBLE);
                     viewHolder.messageTextView.setVisibility(View.GONE);
+                    viewHolder.messageButtonView.setVisibility(View.GONE);
 
                     try {
                         final StorageReference gsReference =
@@ -173,6 +236,13 @@ public class MessageUtil {
             }
         });
         return adapter;
+    }
+
+    public static StorageReference getAudioStorageReference(FirebaseUser user, Uri uri){
+        long nowMs = Calendar.getInstance().getTimeInMillis();
+
+        return aStorage.getReference().child("Audio"+"/"+user.getUid()+"/"+uri
+                .getLastPathSegment());
     }
 
     public static StorageReference getImageStorageReference(FirebaseUser user, Uri uri) {
